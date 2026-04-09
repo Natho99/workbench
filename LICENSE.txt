@@ -1,0 +1,81 @@
+**4G WORKBENCH SOFTWARE**
+**Software License Agreement**
+
+---
+
+**Copyright (c) 2026. All rights reserved.**
+
+By installing, accessing, or using this software, you agree to the following terms:
+
+---
+
+### 1. License Grant
+
+This software is licensed, not sold. You are granted a limited, non-exclusive, non-transferable license to use it strictly for authorized organizational operations.
+
+---
+
+### 2. Permitted Use
+
+You may use the software only for official purposes within your organization and in accordance with internal policies.
+
+---
+
+### 3. Restrictions
+
+You may NOT:
+
+* Modify, reverse-engineer, decompile, or create derivative works
+* Copy, distribute, share, or sublicense the software
+* Use the software for unauthorized, personal, or unlawful purposes
+* Bypass or interfere with security controls
+
+---
+
+### 4. Data Responsibility
+
+You are responsible for the accuracy and legality of any data processed. The developer is not responsible for errors resulting from incorrect input or misuse.
+
+---
+
+### 5. Confidentiality & Ownership
+
+This software and its contents are confidential and remain the intellectual property of the developer. No ownership rights are transferred.
+
+---
+
+### 6. No Warranty
+
+This software is provided **"as is"**, without warranties of any kind, express or implied.
+
+---
+
+### 7. Limitation of Liability
+
+The developer shall not be liable for any loss, damage, or disruption arising from the use or inability to use the software.
+
+---
+
+### 8. Termination
+
+This license may be terminated if you violate these terms. Upon termination, you must stop using and delete the software.
+
+---
+
+### 9. Governing Law
+
+This agreement is governed by the laws of Kenya.
+
+---
+
+### 10. Support
+
+For assistance or permissions, contact:
+
+**Nathan Kimutai**
+Tech Support Officer
+Tel: +254700423736
+
+---
+
+**By using this software, you agree to these terms.**

@@ -1,0 +1,13 @@
+**Before You Install**
+
+Please read the following carefully before proceeding with the installation of the CSV Transformer Software.
+
+By continuing with this installation, you acknowledge and agree that:
+
+* This software is intended strictly for authorized organizational use.
+* You will comply with all usage restrictions outlined in the Software License Agreement.
+* You understand that the software is provided "as is" without warranty.
+* You accept full responsibility for any data processed using this software.
+
+If you do not agree to these terms, please cancel the installation.
+

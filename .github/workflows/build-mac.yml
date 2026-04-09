@@ -1,0 +1,52 @@
+name: Build macOS Installer
+on: 
+  push:
+    branches: [ main ]  # Runs every time you push to the main branch
+
+jobs:
+  macos-build:
+    runs-on: macos-latest  # This tells GitHub to use a Mac VM
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          brew install create-dmg
+
+      - name: Run PyInstaller
+        run: |
+          pyinstaller main.py \
+            --name "4G_WORKBENCH" \
+            --onefile \
+            --windowed \
+            --icon=app.icns \
+            --add-data "app.icns:." \
+            --add-data "LICENSE.txt:." \
+            --clean
+
+      - name: Create DMG Installer
+        run: |
+          # Ensure the dist folder exists and create the DMG
+          create-dmg \
+            --volname "4G WORKBENCH" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --app-drop-link 600 185 \
+            "4G_WORKBENCH.dmg" \
+            "dist/"
+
+      - name: Upload DMG as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 4G-Workbench-Mac-Installer
+          path: 4G_WORKBENCH.dmg
