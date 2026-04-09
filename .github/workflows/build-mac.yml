@@ -1,18 +1,21 @@
 name: Build macOS Installer
 on: 
   push:
-    branches: [ main ]  # Runs every time you push to the main branch
+    branches: [ main ]
 
 jobs:
   macos-build:
-    runs-on: macos-latest  # This tells GitHub to use a Mac VM
-    
+    runs-on: macos-latest
+    env:
+      # Opt into the newer Node.js runtime to remove the deprecation warning
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # v4 is actually still fine, but the env var above clears the warning
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # Updated to v5
         with:
           python-version: '3.10'
 
@@ -35,7 +38,6 @@ jobs:
 
       - name: Create DMG Installer
         run: |
-          # Ensure the dist folder exists and create the DMG
           create-dmg \
             --volname "4G WORKBENCH" \
             --window-pos 200 120 \
@@ -46,7 +48,7 @@ jobs:
             "dist/"
 
       - name: Upload DMG as Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4 is the current stable version for artifacts
         with:
           name: 4G-Workbench-Mac-Installer
           path: 4G_WORKBENCH.dmg
