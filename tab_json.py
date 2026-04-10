@@ -1,9 +1,11 @@
+#!/usr/bin/env python
+# coding: utf-8
 # tab_json.py
 """
 JSON Generator panel.
 
 3-column layout (left → right):
-  Col 1  Payment Form     — largest, flexible
+  Col 1  Payment Form      — largest, flexible
   Col 2  Reference Holder — fixed 320 px
   Col 3  Generated JSON   — fixed 270 px
 

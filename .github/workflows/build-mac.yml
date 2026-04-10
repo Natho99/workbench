@@ -1,54 +1,80 @@
-name: Build macOS Installer
+name: Build, Package, and Capture UI
+
 on: 
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  macos-build:
+  macos-build-capture:
     runs-on: macos-latest
-    env:
-      # Opt into the newer Node.js runtime to remove the deprecation warning
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4  # v4 is actually still fine, but the env var above clears the warning
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # Updated to v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
       - name: Install Dependencies
         run: |
-          pip install pyinstaller
+          python -m pip install --upgrade pip
+          # Added Pillow to handle the .icns conversion/loading we added to main.py
+          pip install pyinstaller pandas numpy openpyxl Pillow
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          brew install create-dmg
 
       - name: Run PyInstaller
         run: |
+          # 1. We use --icon to set the Dock/Finder icon
+          # 2. We use --add-data to bundle the icon and license inside the app
+          # Note: On Mac, the separator for --add-data is a colon ':'
           pyinstaller main.py \
             --name "4G_WORKBENCH" \
-            --onefile \
             --windowed \
-            --icon=app.icns \
+            --noconfirm \
+            --clean \
+            --icon="app.icns" \
             --add-data "app.icns:." \
-            --add-data "LICENSE.txt:." \
-            --clean
+            --add-data "LICENSE.txt:."
 
-      - name: Create DMG Installer
+      - name: Create .pkg Installer
         run: |
-          create-dmg \
-            --volname "4G WORKBENCH" \
-            --window-pos 200 120 \
-            --window-size 800 400 \
-            --icon-size 100 \
-            --app-drop-link 600 185 \
-            "4G_WORKBENCH.dmg" \
-            "dist/"
+          # Create a standard macOS installer package from the .app bundle
+          pkgbuild --component "dist/4G_WORKBENCH.app" \
+            --install-location "/Applications" \
+            "dist/4G_WORKBENCH_Installer.pkg"
 
-      - name: Upload DMG as Artifact
-        uses: actions/upload-artifact@v4 # v4 is the current stable version for artifacts
+      - name: Install and Fix Permissions
+        run: |
+          # Install the .pkg to the runner so the screenshot step can find it in /Applications
+          sudo installer -pkg "dist/4G_WORKBENCH_Installer.pkg" -target /
+          # Remove Apple's quarantine attribute to allow the app to launch headlessly
+          sudo xattr -rd com.apple.quarantine "/Applications/4G_WORKBENCH.app" || true
+
+      - name: Launch and Screenshot
+        run: |
+          echo "Starting the app..."
+          # Launch the binary from the installed location and redirect logs
+          /Applications/4G_WORKBENCH.app/Contents/MacOS/4G_WORKBENCH > app_errors.txt 2>&1 &
+          
+          # Wait 60 seconds for the GUI to fully render and the icon to appear in the dock
+          sleep 60
+          
+          # Capture the screen
+          screencapture -x screenshot.png
+          
+          echo "--- DEBUG: APP OUTPUT/ERRORS ---"
+          cat app_errors.txt || echo "No logs found"
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
         with:
-          name: 4G-Workbench-Mac-Installer
-          path: 4G_WORKBENCH.dmg
+          name: 4G-Workbench-MacOS-Final
+          path: |
+            screenshot.png
+            dist/4G_WORKBENCH_Installer.pkg
+            app_errors.txt

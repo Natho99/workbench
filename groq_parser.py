@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# coding: utf-8
 # groq_parser.py
 """
 Groq-API-powered payment field extractor.
@@ -441,7 +443,7 @@ _TYPE_SPECS = {
     ],
     "Bank": [
         ("name",          "string", 'CONSTANT: always "FOURTH".'),
-        ("amount",        "string", '2 decimal places, e.g. "651000.00".'),
+        ("amount",         "string", '2 decimal places, e.g. "651000.00".'),
         ("transactionId", "string",
          'Must start with "S". Prepend S if missing. e.g. "S34111201".'),
         ("billRefNumber", "string",
@@ -456,7 +458,7 @@ _TYPE_SPECS = {
     ],
     "Flexipay": [
         ("name",          "string", 'CONSTANT: always "FOURTH".'),
-        ("amount",        "string", 'Whole number, no decimals, e.g. "1140000".'),
+        ("amount",         "string", 'Whole number, no decimals, e.g. "1140000".'),
         ("transactionId", "string",
          'CRITICAL: ONLY a number starting with "3000" e.g. "300068579130". '
          'Ignore ALL other IDs. Output "" if none found.'),
@@ -598,11 +600,9 @@ def _apply_rules(json_type: str, processed: dict, raw_text: str = "") -> dict:
             processed.pop("NetworkTxnId", None)
 
         # PaymentDate — parse AI value first; fall back to full text scan
-        # Both paths try to attach a real time from the raw text
         pd_raw = processed.get("PaymentDate", "").strip()
         dt = _parse_date(pd_raw) if pd_raw else None
         if dt is not None:
-            # Try to enhance with a real time from the raw text
             t = _extract_time(raw_text)
             if t and dt.hour == 0 and dt.minute == 0:
                 dt = dt.replace(hour=t[0], minute=t[1], second=t[2])
@@ -628,15 +628,14 @@ def _apply_rules(json_type: str, processed: dict, raw_text: str = "") -> dict:
             processed.pop("customerReferenceNumber", None)
             processed.pop("senderPhoneNumber", None)
 
-        # transactionId — strip any accidental T/S prefix the AI might add
+        # transactionId — strip any accidental T/S prefix
         tid = processed.get("transactionId", "").strip()
         if tid and not re.fullmatch(r'\d+', tid):
-            # Remove leading non-digit characters
             tid = re.sub(r'^\D+', '', tid)
         if tid:
             processed["transactionId"] = tid
 
-        # Date cross-fill with real time
+        # Date cross-fill
         dt = None
         for df in _AIRTEL_DATE_FIELDS:
             val = processed.get(df, "").strip()
@@ -644,7 +643,6 @@ def _apply_rules(json_type: str, processed: dict, raw_text: str = "") -> dict:
             if dt:
                 break
         if dt is not None:
-            # Enhance with time from raw text if AI gave only date
             t = _extract_time(raw_text)
             if t and dt.hour == 0 and dt.minute == 0:
                 dt = dt.replace(hour=t[0], minute=t[1], second=t[2])

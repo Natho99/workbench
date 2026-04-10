@@ -1,11 +1,31 @@
 import os
 import sqlite3
+import sys
 
-# ── DB path ──────────────────────────────────────────────────────────────
+# ── DB path (macOS Optimized) ──────────────────────────────────────────────
 def _db_path() -> str:
-    base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    """
+    Returns the standard path for local data storage.
+    macOS: ~/Library/Application Support/4GCapital/journal.db
+    Windows: %APPDATA%/4GCapital/journal.db
+    """
+    if sys.platform == "darwin":
+        # Standard Mac location for application data
+        base = os.path.expanduser("~/Library/Application Support")
+    else:
+        # Standard Windows location
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    
     folder = os.path.join(base, "4GCapital")
-    os.makedirs(folder, exist_ok=True)
+    
+    # Ensure the directory exists
+    try:
+        os.makedirs(folder, exist_ok=True)
+    except Exception as e:
+        # Fallback to current directory if permissions fail in the system path
+        print(f"Warning: Could not create directory at {folder}. Error: {e}")
+        folder = "."
+        
     return os.path.join(folder, "journal.db")
 
 DB_PATH = _db_path()
@@ -17,7 +37,7 @@ DEFAULTS: dict = {
     "groq_model": "llama-3.1-8b-instant",
 }
 
-# ── Internal state (prevents re-creating table repeatedly) ───────────────
+# ── Internal state ───────────────────────────────────────────────────────
 _db_initialized = False
 
 def _get_conn() -> sqlite3.Connection:
@@ -45,7 +65,7 @@ def _init_db():
 # ── Public API ───────────────────────────────────────────────────────────
 
 def load_settings() -> dict:
-    """Load settings without overwriting saved values."""
+    """Load settings from SQLite without overwriting defaults."""
     _init_db()
 
     cfg = dict(DEFAULTS)
@@ -58,17 +78,19 @@ def load_settings() -> dict:
             cfg[row["key"]] = row["value"]
 
     except Exception:
+        # If DB is empty or inaccessible, return DEFAULTS
         pass
 
     return cfg
 
 
 def save_settings(cfg: dict) -> None:
-    """Save only provided values."""
+    """Save settings using the SQLite UPSERT (Insert or Update) method."""
     _init_db()
 
     try:
         with _get_conn() as conn:
+            # Use SQLite UPSERT logic (ON CONFLICT) to update existing keys
             conn.executemany(
                 """
                 INSERT INTO settings (key, value)
@@ -80,4 +102,10 @@ def save_settings(cfg: dict) -> None:
             conn.commit()
 
     except Exception as exc:
-        raise IOError(f"Could not save settings: {exc}") from exc
+        raise IOError(f"Could not save settings to {DB_PATH}: {exc}") from exc
+
+if __name__ == "__main__":
+    # Quick debug to verify pathing
+    print(f"Database Path: {DB_PATH}")
+    test_cfg = load_settings()
+    print(f"Loaded Settings: {test_cfg}")
