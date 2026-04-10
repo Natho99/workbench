@@ -1,12 +1,15 @@
-- name: Launch, Automate UI, and Screenshot
-        run: |
+
+GitHub Actions
+/ .github/workflows/screenshot.yml
+Invalid workflow file
+
+You have an error in your yaml syntax on line 2
           echo "Starting the app..."
           # Launch the app in the background
           /Applications/4G_WORKBENCH.app/Contents/MacOS/4G_WORKBENCH > app_errors.txt 2>&1 &
           
           # Give the app time to initialize
           sleep 15
-
           echo "Running UI Automation via AppleScript..."
           osascript <<EOT
             tell application "System Events"
@@ -25,7 +28,6 @@
                 delay 1
                 keystroke return
                 delay 2
-
                 -- 3. Click the Notes Icon
                 -- We use keyboard shortcuts if you've mapped them, or simulated clicks
                 -- For this example, we'll use the 'Notes' shortcut if defined (e.g., cmd+n)
@@ -35,7 +37,6 @@
                 end repeat
                 keystroke return
                 delay 3
-
                 -- 4. Click the Reconcile Icon
                 keystroke tab
                 keystroke return
