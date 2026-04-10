@@ -48,7 +48,6 @@ def _open_license():
         return
     try:
         # Mac use 'open', Windows uses 'start'
-        cmd = "open" if sys.platform == "darwin" else "start"
         if sys.platform == "darwin":
             subprocess.call(["open", _LICENSE_PATH])
         elif sys.platform.startswith("win"):
@@ -94,7 +93,7 @@ class TransformerApp(tk.Tk):
             icon_path = resource_path("app.icns")
             if sys.platform == "darwin":
                 # On Mac, the dock icon is usually handled by the Info.plist in the bundle,
-                # but we can try setting the iconphoto for the window title bar.
+                # but we use iconphoto to ensure it appears in the task switcher/title bar.
                 from PIL import Image, ImageTk
                 img = Image.open(icon_path)
                 photo = ImageTk.PhotoImage(img)
