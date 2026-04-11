@@ -1,1 +1,108 @@
+name: Build, Package, and Capture UI
 
+on: 
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  macos-build-capture:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pandas numpy openpyxl Pillow
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run PyInstaller
+        run: |
+          pyinstaller main.py \
+            --name "4G_WORKBENCH" \
+            --windowed \
+            --noconfirm \
+            --clean \
+            --icon="app.icns" \
+            --add-data "app.icns:." \
+            --add-data "LICENSE.txt:."
+
+      - name: Create .pkg Installer
+        run: |
+          pkgbuild --component "dist/4G_WORKBENCH.app" \
+            --install-location "/Applications" \
+            "dist/4G_WORKBENCH_Installer.pkg"
+
+      - name: Install and Fix Permissions
+        run: |
+          sudo installer -pkg "dist/4G_WORKBENCH_Installer.pkg" -target /
+          sudo xattr -rd com.apple.quarantine "/Applications/4G_WORKBENCH.app" || true
+
+      - name: Launch, Automate UI, and Screenshot
+        run: |
+          echo "Starting the app..."
+          # Launch in background
+          /Applications/4G_WORKBENCH.app/Contents/MacOS/4G_WORKBENCH > app_errors.txt 2>&1 &
+          
+          # Wait for app to initialize
+          sleep 20
+
+          echo "Running UI Automation via AppleScript..."
+          osascript <<EOT
+            tell application "System Events"
+              tell process "4G_WORKBENCH"
+                set frontmost to true
+                
+                -- 1. Try to set Full Screen
+                try
+                  set value of attribute "AXFullScreen" of window 1 to true
+                end try
+                delay 5
+                
+                -- 2. Select Mode Dropdown
+                keystroke tab
+                delay 1
+                keystroke (ASCII character 31) -- Down Arrow
+                delay 1
+                keystroke return
+                delay 2
+
+                -- 3. Navigate to and Click Notes
+                repeat 5 times
+                  keystroke tab
+                end repeat
+                keystroke return
+                delay 5
+
+                -- 4. Navigate to and Click Reconcile
+                keystroke tab
+                keystroke return
+                delay 5
+              end tell
+            end tell
+          EOT
+
+          # Take the screenshot
+          screencapture -x screenshot_automated.png
+          
+          echo "--- DEBUG: APP OUTPUT/ERRORS ---"
+          cat app_errors.txt || echo "No logs found"
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: 4G-Workbench-Automated-UI
+          path: |
+            screenshot_automated.png
+            dist/4G_WORKBENCH_Installer.pkg
+            app_errors.txt
