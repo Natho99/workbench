@@ -23,15 +23,14 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          # Pillow is required for the iconphoto handling in main.py [cite: 1, 25]
+          # Pillow is required for the iconphoto handling in main.py 
           pip install pyinstaller pandas numpy openpyxl Pillow 
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run PyInstaller
         run: |
-          # Use --icon to set the Finder/Dock icon [cite: 1, 25]
+          # Use --icon to set the Finder/Dock icon 
           # Use --add-data with a colon separator for macOS 
-          # Ensure app.icns is bundled at the root of the app resources
           pyinstaller main.py \
             --name "4G_WORKBENCH" \
             --windowed \
@@ -55,17 +54,26 @@ jobs:
           # Bypass Gatekeeper for the automated screenshot tool 
           sudo xattr -rd com.apple.quarantine "/Applications/4G_WORKBENCH.app" || true
 
-      - name: Launch and Screenshot
+      - name: Launch, Fullscreen, and Screenshot
         run: |
           echo "Starting the app..."
-          # Run the application in the background and capture stderr/stdout for debugging 
+          # Run the application in the background 
           /Applications/4G_WORKBENCH.app/Contents/MacOS/4G_WORKBENCH > app_errors.txt 2>&1 &
           
-          # Wait 60 seconds for the GUI to fully load and the icon to register in the dock 
-          sleep 60
+          # Wait for the GUI to fully load 
+          sleep 30
           
-          # Capture the runner's desktop to verify UI and Icon 
-          screencapture -x screenshot.png
+          echo "Automating Fullscreen mode via AppleScript..."
+          # Use AppleScript to find the window and set its fullscreen attribute 
+          osascript -e 'tell application "System Events" to tell process "4G_WORKBENCH"
+            set value of attribute "AXFullScreen" of window 1 to true
+          end tell'
+          
+          # Wait for transition animation to finish
+          sleep 5
+          
+          # Capture the runner's desktop 
+          screencapture -x screenshot_fullscreen.png
           
           echo "--- DEBUG: APP OUTPUT/ERRORS ---"
           cat app_errors.txt || echo "No logs found"
@@ -73,8 +81,8 @@ jobs:
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: 4G-Workbench-MacOS-Final
+          name: 4G-Workbench-MacOS-Fullscreen
           path: |
-            screenshot.png
+            screenshot_fullscreen.png
             dist/4G_WORKBENCH_Installer.pkg
             app_errors.txt
