@@ -23,15 +23,11 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          # Pillow is required for the iconphoto handling in main.py 
           pip install pyinstaller pandas numpy openpyxl Pillow 
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run PyInstaller
         run: |
-          # Use --icon to set the Finder/Dock icon 
-          # Use --add-data with a colon separator for macOS 
-          # Ensure app.icns is bundled at the root of the app resources
           pyinstaller main.py \
             --name "4G_WORKBENCH" \
             --windowed \
@@ -43,46 +39,62 @@ jobs:
 
       - name: Create .pkg Installer
         run: |
-          # Bundle the .app into a standard macOS installer
           pkgbuild --component "dist/4G_WORKBENCH.app" \
             --install-location "/Applications" \
             "dist/4G_WORKBENCH_Installer.pkg"
 
       - name: Install and Fix Permissions
         run: |
-          # Install the pkg to the runner to verify the installation
           sudo installer -pkg "dist/4G_WORKBENCH_Installer.pkg" -target /
-          # Bypass Gatekeeper for the automated screenshot tool
           sudo xattr -rd com.apple.quarantine "/Applications/4G_WORKBENCH.app" || true
 
-      - name: Launch, Fullscreen, and Screenshot
+      - name: Launch, Automate, and Screenshot Pages
         run: |
           echo "Starting the app..."
-          # Run the application in the background and capture stderr/stdout for debugging
           /Applications/4G_WORKBENCH.app/Contents/MacOS/4G_WORKBENCH > app_errors.txt 2>&1 &
           
-          # Wait time to ensure the GUI is initialized 
+          # Initial wait for GUI initialization
           sleep 45
           
-          echo "Automating Fullscreen mode via AppleScript..."
-          # Use osascript to bring the process to front and trigger fullscreen on window 1
-          osascript -e 'tell application "System Events"
-            tell process "4G_WORKBENCH"
-              set frontmost to true
-              delay 2
-              try
-                set value of attribute "AXFullScreen" of window 1 to true
-              on error errText
-                log "Error setting fullscreen: " & errText
-              end try
+          echo "Automating Page Navigation via AppleScript..."
+          osascript <<EOT
+            tell application "System Events"
+              tell process "4G_WORKBENCH"
+                set frontmost to true
+                delay 2
+                
+                # 1. Set Fullscreen
+                try
+                  set value of attribute "AXFullScreen" of window 1 to true
+                end try
+                delay 10
+                
+                # NAVIGATION LOGIC:
+                # Based on the UI, we tab to reach the top-right icons.
+                # Adjust the 'repeat' counts if focus behavior changes.
+
+                # Page 1: Reconcile (Usually the first button in that group)
+                repeat 2 times
+                  keystroke tab
+                end repeat
+                keystroke return
+                delay 5
+                do shell script "screencapture -x screenshot_reconcile.png"
+
+                # Page 2: Notes (Next button)
+                keystroke tab
+                keystroke return
+                delay 5
+                do shell script "screencapture -x screenshot_notes.png"
+
+                # Page 3: Settings (Final button)
+                keystroke tab
+                keystroke return
+                delay 5
+                do shell script "screencapture -x screenshot_settings.png"
+              end tell
             end tell
-          end tell'
-          
-          # Wait for transition animation to finish 
-          sleep 10
-          
-          # Capture the runner's desktop
-          screencapture -x screenshot_fullscreen.png
+          EOT
           
           echo "--- DEBUG: APP OUTPUT/ERRORS ---"
           cat app_errors.txt || echo "No logs found"
@@ -90,8 +102,10 @@ jobs:
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: 4G-Workbench-MacOS-Fullscreen
+          name: 4G-Workbench-MultiPage-Screenshots
           path: |
-            screenshot_fullscreen.png
+            screenshot_reconcile.png
+            screenshot_notes.png
+            screenshot_settings.png
             dist/4G_WORKBENCH_Installer.pkg
             app_errors.txt
