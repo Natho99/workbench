@@ -31,6 +31,7 @@ jobs:
         run: |
           # Use --icon to set the Finder/Dock icon 
           # Use --add-data with a colon separator for macOS 
+          # Ensure app.icns is bundled at the root of the app resources
           pyinstaller main.py \
             --name "4G_WORKBENCH" \
             --windowed \
@@ -42,37 +43,45 @@ jobs:
 
       - name: Create .pkg Installer
         run: |
-          # Bundle the .app into a standard macOS installer 
+          # Bundle the .app into a standard macOS installer
           pkgbuild --component "dist/4G_WORKBENCH.app" \
             --install-location "/Applications" \
             "dist/4G_WORKBENCH_Installer.pkg"
 
       - name: Install and Fix Permissions
         run: |
-          # Install the pkg to the runner to verify the installation 
+          # Install the pkg to the runner to verify the installation
           sudo installer -pkg "dist/4G_WORKBENCH_Installer.pkg" -target /
-          # Bypass Gatekeeper for the automated screenshot tool 
+          # Bypass Gatekeeper for the automated screenshot tool
           sudo xattr -rd com.apple.quarantine "/Applications/4G_WORKBENCH.app" || true
 
       - name: Launch, Fullscreen, and Screenshot
         run: |
           echo "Starting the app..."
-          # Run the application in the background 
+          # Run the application in the background and capture stderr/stdout for debugging
           /Applications/4G_WORKBENCH.app/Contents/MacOS/4G_WORKBENCH > app_errors.txt 2>&1 &
           
-          # Wait for the GUI to fully load 
-          sleep 30
+          # Wait time to ensure the GUI is initialized 
+          sleep 45
           
           echo "Automating Fullscreen mode via AppleScript..."
-          # Use AppleScript to find the window and set its fullscreen attribute 
-          osascript -e 'tell application "System Events" to tell process "4G_WORKBENCH"
-            set value of attribute "AXFullScreen" of window 1 to true
+          # Use osascript to bring the process to front and trigger fullscreen on window 1
+          osascript -e 'tell application "System Events"
+            tell process "4G_WORKBENCH"
+              set frontmost to true
+              delay 2
+              try
+                set value of attribute "AXFullScreen" of window 1 to true
+              on error errText
+                log "Error setting fullscreen: " & errText
+              end try
+            end tell
           end tell'
           
-          # Wait for transition animation to finish
-          sleep 5
+          # Wait for transition animation to finish 
+          sleep 10
           
-          # Capture the runner's desktop 
+          # Capture the runner's desktop
           screencapture -x screenshot_fullscreen.png
           
           echo "--- DEBUG: APP OUTPUT/ERRORS ---"
