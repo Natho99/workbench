@@ -1,0 +1,27 @@
+pyinstaller main.py ^
+    --name "4G_WORKBENCH" ^
+    --onefile ^
+    --windowed ^
+    --icon=app.ico ^
+    --add-data "app.ico;." ^
+    --add-data "LICENSE.txt;." ^
+    --clean
+
+on mac
+
+pyinstaller main.py \
+    --name "4G_WORKBENCH" \
+    --onefile \
+    --windowed \
+    --icon=app.icns \
+    --add-data "app.icns:." \
+    --add-data "LICENSE.txt:." \
+    --clean
+
+    brew install create-dmg
+
+create-dmg \
+  --volname "4G WORKBENCH" \
+  --app-drop-link 600 185 \
+  "4G_WORKBENCH.dmg" \
+  "dist/"
